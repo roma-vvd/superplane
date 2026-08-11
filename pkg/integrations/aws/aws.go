@@ -360,29 +360,32 @@ func (a *AWS) cleanupIAM(ctx core.IntegrationCleanupContext, metadata *common.In
 func (a *AWS) showBrowserAction(ctx core.SyncContext) error {
 	ctx.Integration.NewBrowserAction(core.BrowserAction{
 		Description: fmt.Sprintf(`
-**1. Create Identity Provider**
+**1. Create an identity provider**
 
-- Go to AWS IAM Console → Identity Providers → Add provider
-- Choose "OpenID Connect" as the provider type
+- AWS IAM Console → Identity providers → Add provider → **OpenID Connect**
 - Provider URL: **%s**
 - Audience: **%s**
 
-**2. Create IAM Role**
+**2. Create an IAM role**
 
-- Go to AWS IAM Console → Roles → Create role
-- Choose "Web identity" as trusted entity type
-- Select the identity provider created in step 1
-- Add permissions for the integration to manage EventBridge connections, API destinations, and rules. To get started, you can use the **AmazonEventBridgeFullAccess** managed policy
-- Add permissions for the integration manage IAM roles needed for itself. To get started, you can use the **IAMFullAccess** managed policy
-- Add permissions for the integration to manage SQS. To get started, you can use the **AmazonSQSFullAccess** managed policy
-- Add permissions for Amazon Managed Service for Prometheus workspaces if you use Prometheus components. At minimum, the workspace picker requires **aps:ListWorkspaces**; the workspace components also need **aps:CreateWorkspace**, **aps:DescribeWorkspace**, **aps:UpdateWorkspaceAlias**, **aps:DeleteWorkspace**, and **aps:QueryMetrics** for their respective operations. The rule group namespace components need **aps:ListRuleGroupsNamespaces**, **aps:CreateRuleGroupsNamespace**, **aps:DescribeRuleGroupsNamespace**, **aps:PutRuleGroupsNamespace**, and **aps:DeleteRuleGroupsNamespace**.
-- Depending on the SuperPlane actions and triggers you will use, different permissions will be needed. Include the ones you need.
-- Give it a name and description, and create it
+- AWS IAM Console → Roles → Create role → **Web identity**
+- Select the identity provider from step 1
+- Attach the permissions below, then name the role and create it
 
-**3. Complete the installation setup**
+**3. Finish the setup**
 
-- Copy the ARN of the IAM role created in step 2
-- Paste it into the "Role ARN" field in the installation configuration
+- Copy the ARN of the role you just created
+- Paste it into the **IAM Role ARN** field in this installation's configuration
+
+**Permissions**
+
+SuperPlane always needs to manage its own event plumbing: EventBridge connections, API destinations and rules, plus the IAM role EventBridge assumes to invoke them. To get started, attach **AmazonEventBridgeFullAccess** and **IAMFullAccess**.
+
+Beyond that, add permissions for the services your components use. Read permissions matter as much as write ones — the resource dropdowns call them directly, and a missing one shows up as an empty dropdown rather than an error. Picking a machine type when creating an EC2 instance, for example, requires **ec2:DescribeInstanceTypes**.
+
+- **EC2** — **AmazonEC2FullAccess** covers the instance, image, load balancer, Elastic IP and alarm components along with their dropdowns. Three lookups fall outside it: public AMIs need **ssm:GetParameters** and **ssm:GetParametersByPath**, and the instance profile dropdown needs **iam:ListInstanceProfiles**.
+- **ECS, ECR, Lambda, SQS, SNS, Route 53, CodeArtifact, CodePipeline** — attach the matching **FullAccess** managed policy for each service you use.
+- **Prometheus** — **AmazonPrometheusFullAccess**, or scope it down: the workspace dropdown needs **aps:ListWorkspaces**; the workspace components add **aps:CreateWorkspace**, **aps:DescribeWorkspace**, **aps:UpdateWorkspaceAlias**, **aps:DeleteWorkspace** and **aps:QueryMetrics**; the rule group namespace components add **aps:ListRuleGroupsNamespaces**, **aps:CreateRuleGroupsNamespace**, **aps:DescribeRuleGroupsNamespace**, **aps:PutRuleGroupsNamespace** and **aps:DeleteRuleGroupsNamespace**.
 `, ctx.BaseURL, ctx.Integration.ID().String()),
 	})
 

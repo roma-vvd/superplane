@@ -31,9 +31,17 @@ func Test__AWS__Sync(t *testing.T) {
 
 		require.NoError(t, err)
 		require.NotNil(t, integrationCtx.BrowserAction)
-		assert.Contains(t, integrationCtx.BrowserAction.Description, "Create Identity Provider")
-		assert.Contains(t, integrationCtx.BrowserAction.Description, "IAM Role")
+		assert.Contains(t, integrationCtx.BrowserAction.Description, "Create an identity provider")
+		assert.Contains(t, integrationCtx.BrowserAction.Description, "IAM Role ARN")
 		assert.Contains(t, integrationCtx.BrowserAction.Description, "aps:ListWorkspaces")
+
+		//
+		// The dropdowns call read APIs directly, so the permissions they need
+		// have to be spelled out — a missing one is an empty dropdown, not an error.
+		//
+		assert.Contains(t, integrationCtx.BrowserAction.Description, "ec2:DescribeInstanceTypes")
+		assert.Contains(t, integrationCtx.BrowserAction.Description, "iam:ListInstanceProfiles")
+		assert.Contains(t, integrationCtx.BrowserAction.Description, "ssm:GetParametersByPath")
 	})
 
 	t.Run("role arn -> sets secrets, metadata, and schedules resync", func(t *testing.T) {
